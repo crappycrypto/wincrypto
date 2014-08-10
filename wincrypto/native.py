@@ -16,9 +16,9 @@ def CryptReleaseContext(hprov):
     assert success
 
 
-def CryptImportKey(hprov, keyblob):
+def CryptImportKey(hprov, keyblob, hPubKey=0):
     hkey = c_void_p()
-    success = windll.advapi32.CryptImportKey(hprov, keyblob, len(keyblob), 0, 0, byref(hkey))
+    success = windll.advapi32.CryptImportKey(hprov, keyblob, len(keyblob), hPubKey, 0, byref(hkey))
     assert success
     return hkey
 
