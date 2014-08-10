@@ -1,6 +1,7 @@
 from collections import namedtuple
 import struct
 
+from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
@@ -80,3 +81,17 @@ def import_publickeystruc(data):
                                privatekey.prime1, privatekey.prime2))
             return r
     raise NotImplementedError('Microsoft key type not yet implemented')
+
+
+def rsa_decrypt(rsa_key, data):
+    data = data[::-1]
+    c = PKCS1_v1_5.new(rsa_key)
+    result = c.decrypt(data, None)
+    return result
+
+
+def rsa_encrypt(rsa_key, data):
+    c = PKCS1_v1_5.new(rsa_key)
+    result = c.encrypt(data)
+    result = result[::-1]
+    return result
