@@ -1,7 +1,7 @@
 from collections import namedtuple
 import struct
 
-from Crypto.Cipher import PKCS1_v1_5, ARC4
+from Crypto.Cipher import PKCS1_v1_5, ARC4, AES
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
@@ -24,8 +24,9 @@ bType_PRIVATEKEYBLOB = 7
 bType_PLAINTEXTKEYBLOB = 8
 
 # CALG
-CALG_RSA_KEYX = 0xa400
+CALG_AES_128 = 0x660e
 CALG_RC4 = 0x6801
+CALG_RSA_KEYX = 0xa400
 
 CUR_BLOB_VERSION = 2
 
@@ -61,6 +62,13 @@ def rsa_to_privatekeystruc(rsa_key):
     return result
 
 
+def aes128_to_plaintextkeyblob(aes_key):
+    result = PUBLICKEYSTRUC_s.pack(bType_PLAINTEXTKEYBLOB, 2, CALG_AES_128)
+    result += struct.pack('<I', len(aes_key))
+    result += aes_key
+    return result
+
+
 def rc4_to_plaintextkeyblob(rc4_key):
     result = PUBLICKEYSTRUC_s.pack(bType_PLAINTEXTKEYBLOB, 2, CALG_RC4)
     result += struct.pack('<I', len(rc4_key))
@@ -73,6 +81,15 @@ def rc4_to_simpleblob(rc4_key, rsa_key):
     result += struct.pack('<I', CALG_RSA_KEYX)
     c = PKCS1_v1_5.new(rsa_key)
     encrypted_key = c.encrypt(rc4_key)
+    result += encrypted_key[::-1]
+    return result
+
+
+def aes128_to_simpleblob(aes_key, rsa_key):
+    result = PUBLICKEYSTRUC_s.pack(bType_SIMPLEBLOB, CUR_BLOB_VERSION, CALG_AES_128)
+    result += struct.pack('<I', CALG_RSA_KEYX)
+    c = PKCS1_v1_5.new(rsa_key)
+    encrypted_key = c.encrypt(aes_key)
     result += encrypted_key[::-1]
     return result
 
@@ -139,3 +156,27 @@ def rc4_encrypt(rc4_key, data):
 
 def rc4_decrypt(rc4_key, data):
     return ARC4.new(rc4_key).decrypt(data)
+
+
+def aes128_encrypt(aes_key, data):
+    data = add_pkcs5_padding(data, 16)
+    encrypted = AES.new(aes_key, mode=AES.MODE_CBC, IV='\0' * 16).encrypt(data)
+    return encrypted
+
+
+def aes128_decrypt(aes_key, data):
+    decrypted = AES.new(aes_key, mode=AES.MODE_CBC, IV='\0' * 16).decrypt(data)
+    return remove_pkcs5_padding(decrypted)
+
+
+def remove_pkcs5_padding(data):
+    padding_length = ord(data[-1])
+    return data[:-padding_length]
+
+
+def add_pkcs5_padding(data, blocksize):
+    last_block_len = len(data) % blocksize
+    padding_length = blocksize - last_block_len
+    if padding_length == 0:
+        padding_length = blocksize
+    return data + chr(padding_length) * padding_length
