@@ -4,9 +4,8 @@ import unittest
 from Crypto.PublicKey import RSA
 
 import wincrypto
-from wincrypto import rc4_decrypt
-from wincrypto.native import CryptAcquireContext, CryptReleaseContext, CryptImportKey, CryptDestroyKey, CryptEncrypt, \
-    CryptDecrypt
+from wincrypto import native
+import wincrypto.api
 
 
 TEST_RSA_PRIVATE_PEM = '''-----BEGIN RSA PRIVATE KEY-----
@@ -42,26 +41,30 @@ TEST_AES_KEY = '0123456789ABCDEF'
 class TestRsaImportExport(unittest.TestCase):
     def test_rsa_public_import_export(self):
         pycrypto_key = RSA.importKey(TEST_RSA_PUBLIC_PEM)
-        ms_key = wincrypto.rsa_to_publickeystruc(pycrypto_key)
-        pycrypto_key2 = wincrypto.import_publickeystruc(ms_key)
-        self.assertEqual(pycrypto_key, pycrypto_key2)
+        rsa_key = wincrypto.api.RSA_keyx(pycrypto_key)
+        ms_key = rsa_key.export_publickeyblob()
+        aes_key2 = wincrypto.CryptImportKey(ms_key)
+        self.assertEqual(pycrypto_key, aes_key2.key)
 
     def test_rsa_private_import_export(self):
         pycrypto_key = RSA.importKey(TEST_RSA_PRIVATE_PEM)
-        ms_key = wincrypto.rsa_to_privatekeystruc(pycrypto_key)
-        pycrypto_key2 = wincrypto.import_publickeystruc(ms_key)
-        self.assertEqual(pycrypto_key, pycrypto_key2)
+        rsa_key = wincrypto.api.RSA_keyx(pycrypto_key)
+        ms_key = rsa_key.export_privatekeyblob()
+        aes_key2 = wincrypto.CryptImportKey(ms_key)
+        self.assertEqual(pycrypto_key, aes_key2.key)
 
     def test_rc4_plain_export_import(self):
-        ms_key = wincrypto.rc4_to_plaintextkeyblob(TEST_RC4_KEY)
-        rc4_key = wincrypto.import_publickeystruc(ms_key)
-        self.assertEqual(rc4_key, TEST_RC4_KEY)
+        rc4_key = wincrypto.api.RC4_crypt_key(TEST_RC4_KEY)
+        ms_key = rc4_key.export_plaintextkeyblob()
+        rc4_key = wincrypto.CryptImportKey(ms_key)
+        self.assertEqual(rc4_key.key, TEST_RC4_KEY)
 
     def test_rc4_simple_export_import(self):
         private_key = RSA.importKey(TEST_RSA_PRIVATE_PEM)
-        ms_key = wincrypto.rc4_to_simpleblob(TEST_RC4_KEY, private_key.publickey())
-        rc4_key = wincrypto.import_publickeystruc(ms_key, private_key)
-        self.assertEqual(rc4_key, TEST_RC4_KEY)
+        rc4_key = wincrypto.api.RC4_crypt_key(TEST_RC4_KEY)
+        ms_key = rc4_key.export_simpleblob(private_key.publickey())
+        rc4_key = wincrypto.CryptImportKey(ms_key, private_key)
+        self.assertEqual(rc4_key.key, TEST_RC4_KEY)
 
 
 if platform.system() == 'Windows':
@@ -69,27 +72,27 @@ if platform.system() == 'Windows':
         TEST_STRING = 'Testing!'
 
         def setUp(self):
-            self.hprov = CryptAcquireContext()
-            self.hkey = CryptImportKey(self.hprov, TEST_RSA_PRIVATE_MSKEYBLOB)
-            self.python_key = wincrypto.import_publickeystruc(TEST_RSA_PRIVATE_MSKEYBLOB)
+            self.hprov = native.CryptAcquireContext()
+            self.hkey = native.CryptImportKey(self.hprov, TEST_RSA_PRIVATE_MSKEYBLOB)
+            self.python_key = wincrypto.CryptImportKey(TEST_RSA_PRIVATE_MSKEYBLOB)
 
         def tearDown(self):
-            CryptDestroyKey(self.hkey)
-            CryptReleaseContext(self.hprov)
+            native.CryptDestroyKey(self.hkey)
+            native.CryptReleaseContext(self.hprov)
 
         def test_native_import_crypt_decrypt(self):
-            c = CryptEncrypt(self.hkey, self.TEST_STRING)
-            p2 = CryptDecrypt(self.hkey, c)
+            c = native.CryptEncrypt(self.hkey, self.TEST_STRING)
+            p2 = native.CryptDecrypt(self.hkey, c)
             self.assertEqual(self.TEST_STRING, p2)
 
         def test_native_encrypt_python_decrypt(self):
-            c = CryptEncrypt(self.hkey, self.TEST_STRING)
-            p2 = wincrypto.rsa_decrypt(self.python_key, c)
+            c = native.CryptEncrypt(self.hkey, self.TEST_STRING)
+            p2 = self.python_key.decrypt(c)
             self.assertEqual(self.TEST_STRING, p2)
 
         def test_python_encrypt_native_decrypt(self):
-            c = wincrypto.rsa_encrypt(self.python_key, self.TEST_STRING)
-            p2 = CryptDecrypt(self.hkey, c)
+            c = self.python_key.encrypt(self.TEST_STRING)
+            p2 = native.CryptDecrypt(self.hkey, c)
             self.assertEqual(self.TEST_STRING, p2)
 
 
@@ -97,68 +100,76 @@ if platform.system() == 'Windows':
         TEST_STRING = 'Testing!'
 
         def setUp(self):
-            self.hprov = CryptAcquireContext()
+            self.hprov = native.CryptAcquireContext()
 
         def tearDown(self):
-            CryptReleaseContext(self.hprov)
+            native.CryptReleaseContext(self.hprov)
 
         def test_rc4_native_plaintext_keyblob(self):
-            key_blob = wincrypto.rc4_to_plaintextkeyblob(TEST_RC4_KEY)
-            hkey = CryptImportKey(self.hprov, key_blob)
-            c = CryptEncrypt(hkey, self.TEST_STRING)
-            p = rc4_decrypt(TEST_RC4_KEY, c)
+            rc4_key = wincrypto.api.RC4_crypt_key(TEST_RC4_KEY)
+            key_blob = rc4_key.export_plaintextkeyblob()
+            hkey = native.CryptImportKey(self.hprov, key_blob)
+            c = native.CryptEncrypt(hkey, self.TEST_STRING)
+            rc4_key = wincrypto.CryptImportKey(key_blob)
+            p = rc4_key.decrypt(c)
             self.assertEqual(self.TEST_STRING, p)
-            CryptDestroyKey(hkey)
+            native.CryptDestroyKey(hkey)
 
         def test_rc4_native_simple_keyblob(self):
             private_key = RSA.importKey(TEST_RSA_PRIVATE_PEM)
-            private_blob = wincrypto.rsa_to_privatekeystruc(private_key)
-            rc4_blob = wincrypto.rc4_to_simpleblob(TEST_RC4_KEY, private_key.publickey())
-            hkey_rsa = CryptImportKey(self.hprov, private_blob)
-            hkey_rc4 = CryptImportKey(self.hprov, rc4_blob, hkey_rsa)
-            c = CryptEncrypt(hkey_rc4, self.TEST_STRING)
-            p = rc4_decrypt(TEST_RC4_KEY, c)
+            private_blob = wincrypto.api.RSA_keyx(private_key).export_privatekeyblob()
+            rc4_key = wincrypto.api.RC4_crypt_key(TEST_RC4_KEY)
+            rc4_blob = rc4_key.export_simpleblob(private_key.publickey())
+            hkey_rsa = native.CryptImportKey(self.hprov, private_blob)
+            hkey_rc4 = native.CryptImportKey(self.hprov, rc4_blob, hkey_rsa)
+            c = native.CryptEncrypt(hkey_rc4, self.TEST_STRING)
+            rc4_key = wincrypto.CryptImportKey(rc4_blob, private_key)
+            p = rc4_key.decrypt(c)
             self.assertEqual(self.TEST_STRING, p)
-            CryptDestroyKey(hkey_rc4)
-            CryptDestroyKey(hkey_rsa)
+            native.CryptDestroyKey(hkey_rc4)
+            native.CryptDestroyKey(hkey_rsa)
 
 
     class TestAESNative(unittest.TestCase):
         TEST_STRING = 'Testing! Testing2 Testing3'
 
         def setUp(self):
-            self.hprov = CryptAcquireContext()
+            self.hprov = native.CryptAcquireContext()
 
         def tearDown(self):
-            CryptReleaseContext(self.hprov)
+            native.CryptReleaseContext(self.hprov)
 
         def test_aes_native_encrypt_python_decrypt(self):
-            key_blob = wincrypto.aes128_to_plaintextkeyblob(TEST_AES_KEY)
-            hkey = CryptImportKey(self.hprov, key_blob)
-            c = CryptEncrypt(hkey, self.TEST_STRING)
-            p = wincrypto.aes128_decrypt(TEST_AES_KEY, c)
+            aes_key = wincrypto.api.AES128_crypt_key(TEST_AES_KEY)
+            key_blob = aes_key.export_plaintextkeyblob()
+            hkey = native.CryptImportKey(self.hprov, key_blob)
+            c = native.CryptEncrypt(hkey, self.TEST_STRING)
+            p = aes_key.decrypt(c)
             self.assertEqual(self.TEST_STRING, p)
-            CryptDestroyKey(hkey)
+            native.CryptDestroyKey(hkey)
 
         def test_aes_python_encrypt_native_decrypt(self):
-            key_blob = wincrypto.aes128_to_plaintextkeyblob(TEST_AES_KEY)
-            hkey = CryptImportKey(self.hprov, key_blob)
-            c = wincrypto.aes128_encrypt(TEST_AES_KEY, self.TEST_STRING)
-            p = CryptDecrypt(hkey, c)
+            aes_key = wincrypto.api.AES128_crypt_key(TEST_AES_KEY)
+            key_blob = aes_key.export_plaintextkeyblob()
+            hkey = native.CryptImportKey(self.hprov, key_blob)
+            c = aes_key.encrypt(self.TEST_STRING)
+            p = native.CryptDecrypt(hkey, c)
             self.assertEqual(self.TEST_STRING, p)
-            CryptDestroyKey(hkey)
+            native.CryptDestroyKey(hkey)
 
         def test_rc4_native_simple_keyblob(self):
             private_key = RSA.importKey(TEST_RSA_PRIVATE_PEM)
-            private_blob = wincrypto.rsa_to_privatekeystruc(private_key)
-            aes_blob = wincrypto.aes128_to_simpleblob(TEST_AES_KEY, private_key.publickey())
-            hkey_rsa = CryptImportKey(self.hprov, private_blob)
-            hkey_aes = CryptImportKey(self.hprov, aes_blob, hkey_rsa)
-            c = CryptEncrypt(hkey_aes, self.TEST_STRING)
-            p = wincrypto.aes128_decrypt(TEST_AES_KEY, c)
+            private_blob = wincrypto.api.RSA_keyx(private_key).export_privatekeyblob()
+            aes_key = wincrypto.api.AES128_crypt_key(TEST_AES_KEY)
+            aes_blob = aes_key.export_simpleblob(private_key.publickey())
+            hkey_rsa = native.CryptImportKey(self.hprov, private_blob)
+            hkey_aes = native.CryptImportKey(self.hprov, aes_blob, hkey_rsa)
+            c = native.CryptEncrypt(hkey_aes, self.TEST_STRING)
+            aes_key = wincrypto.CryptImportKey(aes_blob, private_key)
+            p = aes_key.decrypt(c)
             self.assertEqual(self.TEST_STRING, p)
-            CryptDestroyKey(hkey_aes)
-            CryptDestroyKey(hkey_rsa)
+            native.CryptDestroyKey(hkey_aes)
+            native.CryptDestroyKey(hkey_rsa)
 
 if __name__ == '__main__':
     unittest.main()

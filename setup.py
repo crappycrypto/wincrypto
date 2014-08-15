@@ -12,4 +12,5 @@ setup(name='wincrypto',
       install_requires=[
           'pycrypto',
       ],
-      zip_safe=False)
+      zip_safe=False,
+      test_suite='tests')
