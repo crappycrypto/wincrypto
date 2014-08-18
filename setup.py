@@ -12,5 +12,9 @@ setup(name='wincrypto',
       install_requires=[
           'pycrypto',
       ],
-      zip_safe=False,
-      test_suite='tests')
+      test_suite='tests',
+      classifiers=[
+          "Development Status :: 3 - Alpha",
+          "Topic :: Security :: Cryptography",
+          "License :: OSI Approved :: MIT License",
+      ])
