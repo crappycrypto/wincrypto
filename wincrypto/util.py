@@ -23,8 +23,8 @@ def derive_key_3des_aes(hash_alg):
     for x in range(len(hash_val)):
         buf2[x] ^= hash_val[x]
     hash1 = CryptCreateHash(hash_alg.alg_id)
-    hash1.hash_data(buf1)
+    hash1.hash_data(str(buf1))
     hash2 = CryptCreateHash(hash_alg.alg_id)
-    hash2.hash_data(buf2)
+    hash2.hash_data(str(buf2))
     derived_key = hash1.get_hash_val() + hash2.get_hash_val()
     return derived_key
