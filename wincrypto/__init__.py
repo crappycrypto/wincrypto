@@ -1,1 +1,2 @@
-from api import CryptImportKey, CryptEncrypt, CryptDecrypt, CryptExportKey
+from api import CryptImportKey, CryptEncrypt, CryptDecrypt, CryptExportKey, CryptCreateHash, CryptGetKeyParam, \
+    CryptHashData, CryptDeriveKey, CryptGetHashParam

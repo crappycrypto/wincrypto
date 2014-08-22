@@ -1,5 +1,6 @@
 from abc import abstractproperty, ABCMeta
 import struct
+import hashlib
 
 import Crypto.Cipher.PKCS1_v1_5
 import Crypto.Cipher.AES
@@ -9,7 +10,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
 from wincrypto.definitions import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
-    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256
+    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding
 
 
@@ -173,6 +174,36 @@ class AES256(AES_base):
     key_len = 32
 
 
+class HCryptHash():
+    __metaclass__ = ABCMeta
+    alg_id = abstractproperty()
+    hash_class = abstractproperty()
+
+    def __init__(self):
+        # noinspection PyCallingNonCallable
+        self.hasher = self.hash_class()
+
+    def hash_data(self, data):
+        self.hasher.update(data)
+
+    def get_hash_val(self):
+        return self.hasher.digest()
+
+    def get_hash_size(self):
+        return self.hasher.digest_size
+
+
+class MD5(HCryptHash):
+    alg_id = CALG_MD5
+    hash_class = hashlib.md5
+
+
+class SHA1(HCryptHash):
+    alg_id = CALG_SHA1
+    hash_class = hashlib.sha1
+
+
 symmetric_algorithms = [RC4, AES128, AES192, AES256]
 asymmetric_algorithms = [RSA_KEYX]
-algorithm_registry = dict((x.alg_id, x) for x in symmetric_algorithms + asymmetric_algorithms)
+hash_algorithms = [MD5, SHA1]
+algorithm_registry = dict((x.alg_id, x) for x in symmetric_algorithms + asymmetric_algorithms + hash_algorithms)

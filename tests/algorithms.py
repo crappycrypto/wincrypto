@@ -1,9 +1,10 @@
 import unittest
 
 import wincrypto
-from wincrypto.algorithms import symmetric_algorithms
-from wincrypto.api import CryptImportKey, CryptExportKey
-from wincrypto.definitions import bType_PLAINTEXTKEYBLOB
+from wincrypto.algorithms import symmetric_algorithms, hash_algorithms
+from wincrypto.api import CryptImportKey, CryptExportKey, CryptCreateHash, CryptDeriveKey, \
+    CryptHashData
+from wincrypto.definitions import bType_PLAINTEXTKEYBLOB, CALG_MD5, CALG_RC4, CALG_SHA1, CALG_AES_192
 
 
 TEST_RSA_PRIVATE_PEM = '''-----BEGIN RSA PRIVATE KEY-----
@@ -75,3 +76,28 @@ class TestRsa(unittest.TestCase):
         c = public_key.encrypt(TEST_DATA)
         p = private_key.decrypt(c)
         self.assertEqual(TEST_DATA, p)
+
+
+class TestHash(unittest.TestCase):
+    def test_hash_len(self):
+        for algorithm in hash_algorithms:
+            instance = algorithm()
+            hash_val = instance.get_hash_val()
+            hash_size = instance.get_hash_size()
+            self.assertEqual(len(hash_val), hash_size)
+
+
+class TestCryptDeriveKey(unittest.TestCase):
+    def test_CryptDeriveKey_md5_rc4(self):
+        md5_hash = CryptCreateHash(CALG_MD5)
+        CryptHashData(md5_hash, 'Test')
+        rc4_key = CryptDeriveKey(md5_hash, CALG_RC4)
+        known_key = '0cbc6611f5540bd0809a388dc95a615b'.decode('hex')
+        self.assertEqual(rc4_key.key, known_key)
+
+    def test_CryptDeriveKey_sha1_aes192(self):
+        sha1_hash = CryptCreateHash(CALG_SHA1)
+        CryptHashData(sha1_hash, 'Test')
+        aes_key = CryptDeriveKey(sha1_hash, CALG_AES_192)
+        known_key = '97d4f8389786352382ce6079c28d6ed3d65021a99b96263e'.decode('hex')
+        self.assertEqual(aes_key.key, known_key)

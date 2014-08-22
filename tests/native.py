@@ -2,11 +2,12 @@ import platform
 
 if platform.system() == 'Windows':
     import unittest
-    from wincrypto import native
+    from wincrypto import native, definitions, api
     import wincrypto
-    from wincrypto.algorithms import symmetric_algorithms
+    from wincrypto.algorithms import symmetric_algorithms, hash_algorithms
     import wincrypto.api
-    from wincrypto.definitions import bType_PLAINTEXTKEYBLOB, bType_SIMPLEBLOB, bType_PRIVATEKEYBLOB
+    from wincrypto.definitions import bType_PLAINTEXTKEYBLOB, bType_SIMPLEBLOB, bType_PRIVATEKEYBLOB, KP_ALGID, \
+        KP_KEYLEN, HP_HASHSIZE, HP_ALGID
 
 
     TEST_RSA_PRIVATE_PEM = '''-----BEGIN RSA PRIVATE KEY-----
@@ -69,6 +70,17 @@ if platform.system() == 'Windows':
                 self.assertEqual(TEST_DATA, p)
             native.CryptDestroyKey(rsa_hkey)
 
+        def test_native_plaintextkeyblob(self):
+            for algorithm in symmetric_algorithms:
+                instance = algorithm('A' * algorithm.key_len)
+                blob = wincrypto.api.CryptExportKey(instance, None, bType_PLAINTEXTKEYBLOB)
+                hkey = native.CryptImportKey(self.hprov, blob)
+                for key_param in [KP_ALGID, KP_KEYLEN]:
+                    native_val = native.CryptGetKeyParam(hkey, key_param)
+                    python_val = api.CryptGetKeyParam(instance, key_param)
+                    self.assertEqual(native_val, python_val)
+                native.CryptDestroyKey(hkey)
+
 
     class TestRSANative(unittest.TestCase):
         def setUp(self):
@@ -94,3 +106,53 @@ if platform.system() == 'Windows':
             c = self.python_key.encrypt(TEST_DATA)
             p2 = native.CryptDecrypt(self.hkey, c)
             self.assertEqual(TEST_DATA, p2)
+
+    class TestHashNative(unittest.TestCase):
+        def setUp(self):
+            self.hprov = native.CryptAcquireContext()
+
+        def tearDown(self):
+            native.CryptReleaseContext(self.hprov)
+
+        def test_hash_native_python(self):
+            for algorithm in hash_algorithms:
+                hCryptHash = native.CryptCreateHash(self.hprov, algorithm.alg_id)
+                native.CryptHashData(hCryptHash, TEST_DATA)
+                native_hash_val = native.CryptGetHashParam(hCryptHash, definitions.HP_HASHVAL)
+                native_hash_size = native.CryptGetHashParam(hCryptHash, HP_HASHSIZE)
+                native_hash_algid = native.CryptGetHashParam(hCryptHash, HP_ALGID)
+                native.CryptDestroyHash(hCryptHash)
+
+                md5_hash = wincrypto.api.CryptCreateHash(algorithm.alg_id)
+                wincrypto.api.CryptHashData(md5_hash, TEST_DATA)
+                python_hash = wincrypto.api.CryptGetHashParam(md5_hash, definitions.HP_HASHVAL)
+                python_hash_size = wincrypto.api.CryptGetHashParam(md5_hash, HP_HASHSIZE)
+                python_hash_algid = wincrypto.api.CryptGetHashParam(md5_hash, HP_ALGID)
+
+                self.assertEqual(python_hash, native_hash_val)
+                self.assertEqual(python_hash_size, native_hash_size)
+                self.assertEqual(python_hash_algid, native_hash_algid)
+
+
+    class TestCryptDeriveKey(unittest.TestCase):
+        def setUp(self):
+            self.hprov = native.CryptAcquireContext()
+
+        def tearDown(self):
+            native.CryptReleaseContext(self.hprov)
+
+        def test_CryptDeriveKey_native_python(self):
+            for hash_alg in hash_algorithms:
+                for sym_alg in symmetric_algorithms:
+                    hCryptHash = native.CryptCreateHash(self.hprov, hash_alg.alg_id)
+                    native.CryptHashData(hCryptHash, TEST_DATA)
+                    derived_hcrypt = native.CryptDeriveKey(self.hprov, sym_alg.alg_id, hCryptHash)
+                    native_key_blob = native.CryptExportKey(derived_hcrypt, 0, bType_PLAINTEXTKEYBLOB)
+                    native.CryptDestroyHash(hCryptHash)
+                    native_key = api.CryptImportKey(native_key_blob)
+
+                    python_hash = api.CryptCreateHash(hash_alg.alg_id)
+                    api.CryptHashData(python_hash, TEST_DATA)
+                    python_key = api.CryptDeriveKey(python_hash, sym_alg.alg_id)
+
+                    self.assertEqual(native_key.key, python_key.key)
