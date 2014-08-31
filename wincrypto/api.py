@@ -1,9 +1,9 @@
-from wincrypto import definitions
+from wincrypto import constants
 from wincrypto.algorithms import algorithm_registry
-from wincrypto.definitions import PUBLICKEYSTRUC, PUBLICKEYSTRUC_s, CUR_BLOB_VERSION, bType_PUBLICKEYBLOB, \
+from wincrypto.constants import PUBLICKEYSTRUC, PUBLICKEYSTRUC_s, CUR_BLOB_VERSION, bType_PUBLICKEYBLOB, \
     bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, bType_SIMPLEBLOB, KP_KEYLEN, KP_ALGID, CALG_AES_192, CALG_AES_256, \
-    CALG_AES_128
-from wincrypto.util import derive_key_3des_aes
+    CALG_AES_128, ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
+from wincrypto.util import derive_key_3des_aes, GET_ALG_CLASS
 
 
 def CryptImportKey(data, pub_key=None):
@@ -11,27 +11,30 @@ def CryptImportKey(data, pub_key=None):
     if publickeystruc.bVersion != CUR_BLOB_VERSION:
         raise NotImplementedError('PUBLICKEYSTRUC.bVersion={} not implemented'.format(publickeystruc.bVersion))
 
+    if publickeystruc.aiKeyAlg not in algorithm_registry:
+        raise NotImplementedError('ALG_ID {:x} not implemented'.format(publickeystruc.aiKeyAlg))
+
     if publickeystruc.bType == bType_PUBLICKEYBLOB:
-        if publickeystruc.aiKeyAlg not in algorithm_registry:
-            raise NotImplementedError('ALG_ID {:x} not implemented'.format(publickeystruc.aiKeyAlg))
+        if GET_ALG_CLASS(publickeystruc.aiKeyAlg) != ALG_CLASS_KEY_EXCHANGE:
+            raise ValueError('Invalid ALG_ID {:x} for PUBLICKEYBLOB'.format(publickeystruc.aiKeyAlg))
         return algorithm_registry[publickeystruc.aiKeyAlg].import_publickeyblob(data[8:])
 
-    if publickeystruc.bType == bType_PRIVATEKEYBLOB:
-        if publickeystruc.aiKeyAlg not in algorithm_registry:
-            raise NotImplementedError('ALG_ID {:x} not implemented'.format(publickeystruc.aiKeyAlg))
+    elif publickeystruc.bType == bType_PRIVATEKEYBLOB:
+        if GET_ALG_CLASS(publickeystruc.aiKeyAlg) != ALG_CLASS_KEY_EXCHANGE:
+            raise ValueError('Invalid ALG_ID {:x} for PRIVATEKEYBLOB'.format(publickeystruc.aiKeyAlg))
         return algorithm_registry[publickeystruc.aiKeyAlg].import_privatekeyblob(data[8:])
 
-    if publickeystruc.bType == bType_PLAINTEXTKEYBLOB:
-        if publickeystruc.aiKeyAlg not in algorithm_registry:
-            raise NotImplementedError('ALG_ID {:x} not implemented'.format(publickeystruc.aiKeyAlg))
+    elif publickeystruc.bType == bType_PLAINTEXTKEYBLOB:
+        if GET_ALG_CLASS(publickeystruc.aiKeyAlg) != ALG_CLASS_DATA_ENCRYPT:
+            raise ValueError('Invalid ALG_ID {:x} for PLAINTEXTKEYBLOB'.format(publickeystruc.aiKeyAlg))
         return algorithm_registry[publickeystruc.aiKeyAlg].import_plaintextkeyblob(data[8:])
 
-    if publickeystruc.bType == bType_SIMPLEBLOB:
-        if publickeystruc.aiKeyAlg not in algorithm_registry:
-            raise NotImplementedError('ALG_ID {:x} not implemented'.format(publickeystruc.aiKeyAlg))
+    elif publickeystruc.bType == bType_SIMPLEBLOB:
+        if GET_ALG_CLASS(publickeystruc.aiKeyAlg) != ALG_CLASS_DATA_ENCRYPT:
+            raise ValueError('Invalid ALG_ID {:x} for SIMPLEBLOB'.format(publickeystruc.aiKeyAlg))
         return algorithm_registry[publickeystruc.aiKeyAlg].import_simpleblob(data[8:], pub_key)
-
-    raise NotImplementedError('PUBLICKEYSTRUC.bType={} not implemented'.format(publickeystruc.bType))
+    else:
+        raise NotImplementedError('PUBLICKEYSTRUC.bType={} not implemented'.format(publickeystruc.bType))
 
 
 def CryptDecrypt(crypt_key, encrypted_data):
@@ -76,11 +79,11 @@ def CryptHashData(hash_alg, data):
 
 
 def CryptGetHashParam(hash_alg, dwParam):
-    if dwParam == definitions.HP_ALGID:
+    if dwParam == constants.HP_ALGID:
         return hash_alg.alg_id
-    elif dwParam == definitions.HP_HASHVAL:
+    elif dwParam == constants.HP_HASHVAL:
         return hash_alg.get_hash_val()
-    elif dwParam == definitions.HP_HASHSIZE:
+    elif dwParam == constants.HP_HASHSIZE:
         return hash_alg.get_hash_size()
     else:
         return NotImplementedError('hash param {} not implemented'.format(dwParam))

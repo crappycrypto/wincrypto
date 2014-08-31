@@ -8,10 +8,11 @@ import Crypto.Cipher.ARC4
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
-from wincrypto.definitions import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
+from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
-    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1
-from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding
+    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, ALG_CLASS_HASH, \
+    ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
+from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
 
 
 class HCryptKey(object):
@@ -120,17 +121,15 @@ class symmetric_HCryptKey(HCryptKey):
     def import_simpleblob(cls, data, hPubKey):
         assert struct.unpack('<I', data[:4])[0] == CALG_RSA_KEYX
         assert hPubKey
-        pkcs_1_encrypted_key = data[4:][::-1]
-        c = Crypto.Cipher.PKCS1_v1_5.new(hPubKey)
-        key = c.decrypt(pkcs_1_encrypted_key, None)
+        key = hPubKey.decrypt(data[4:])
         return cls(key)
 
     def export_simpleblob(self, rsa_key):
         result = PUBLICKEYSTRUC_s.pack(bType_SIMPLEBLOB, CUR_BLOB_VERSION, self.alg_id)
+        if rsa_key.alg_id != CALG_RSA_KEYX:
+            raise ValueError('SIMPLEBLOB export only supported under RSA key')
         result += struct.pack('<I', CALG_RSA_KEYX)
-        c = Crypto.Cipher.PKCS1_v1_5.new(rsa_key)
-        encrypted_key = c.encrypt(self.key)
-        result += encrypted_key[::-1]
+        result += rsa_key.encrypt(self.key)
         return result
 
 
@@ -203,7 +202,8 @@ class SHA1(HCryptHash):
     hash_class = hashlib.sha1
 
 
-symmetric_algorithms = [RC4, AES128, AES192, AES256]
-asymmetric_algorithms = [RSA_KEYX]
-hash_algorithms = [MD5, SHA1]
-algorithm_registry = dict((x.alg_id, x) for x in symmetric_algorithms + asymmetric_algorithms + hash_algorithms)
+algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1]
+symmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_DATA_ENCRYPT]
+asymmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_KEY_EXCHANGE]
+hash_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_HASH]
+algorithm_registry = dict((x.alg_id, x) for x in algorithm_list)

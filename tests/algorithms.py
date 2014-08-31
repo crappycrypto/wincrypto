@@ -4,7 +4,7 @@ import wincrypto
 from wincrypto.algorithms import symmetric_algorithms, hash_algorithms
 from wincrypto.api import CryptImportKey, CryptExportKey, CryptCreateHash, CryptDeriveKey, \
     CryptHashData
-from wincrypto.definitions import bType_PLAINTEXTKEYBLOB, CALG_MD5, CALG_RC4, CALG_SHA1, CALG_AES_192
+from wincrypto.constants import bType_PLAINTEXTKEYBLOB, CALG_MD5, CALG_RC4, CALG_SHA1, CALG_AES_192, bType_SIMPLEBLOB
 
 
 TEST_RSA_PRIVATE_PEM = '''-----BEGIN RSA PRIVATE KEY-----
@@ -45,7 +45,7 @@ class TestSymmetricKey(unittest.TestCase):
         rsa_key = wincrypto.algorithms.RSA_KEYX.from_pem(TEST_RSA_PRIVATE_PEM)
         for algorithm in symmetric_algorithms:
             instance = algorithm('A' * algorithm.key_len)
-            blob = CryptExportKey(instance, rsa_key, bType_PLAINTEXTKEYBLOB)
+            blob = CryptExportKey(instance, rsa_key, bType_SIMPLEBLOB)
             instance2 = CryptImportKey(blob, rsa_key)
             self.assertEqual(instance.key, instance2.key)
 

@@ -2,7 +2,7 @@ from ctypes import FormatError
 from ctypes import windll, c_void_p, byref, create_string_buffer, c_int
 import struct
 
-from wincrypto.definitions import HP_ALGID, HP_HASHSIZE, KP_KEYLEN, KP_ALGID, CRYPT_EXPORTABLE
+from wincrypto.constants import HP_ALGID, HP_HASHSIZE, KP_KEYLEN, KP_ALGID, CRYPT_EXPORTABLE
 
 
 PROV_RSA_FULL = 1

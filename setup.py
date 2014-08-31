@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(name='wincrypto',
-      version='0.1a',
+      version='0.2a',
       description='Windows Crypto API compatible decryption/encryption',
       url='http://github.com/crappycrypto/wincrypto',
       author='crappycrypto',

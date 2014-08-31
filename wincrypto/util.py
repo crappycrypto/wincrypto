@@ -28,3 +28,7 @@ def derive_key_3des_aes(hash_alg):
     hash2.hash_data(str(buf2))
     derived_key = hash1.get_hash_val() + hash2.get_hash_val()
     return derived_key
+
+
+def GET_ALG_CLASS(x):
+    return x & (7 << 13)
