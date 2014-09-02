@@ -1,4 +1,5 @@
 import unittest
+from binascii import a2b_hex
 
 import wincrypto
 from wincrypto.algorithms import symmetric_algorithms, hash_algorithms
@@ -30,13 +31,13 @@ FtOXHK8ZSwLf8U279sLuh4CzLY9iT0i9ABqakJ3rPw/zV4ZizvWhkZuyx9/uWM7a
 WMnOk3CjFwYAdXVT0QIDAQAB
 -----END PUBLIC KEY-----'''
 
-TEST_DATA = str(bytearray(range(64)))  # 64 is a multiple of most blocksizes
+TEST_DATA = bytes(bytearray(range(64)))  # 64 is a multiple of most blocksizes
 
 
 class TestSymmetricKey(unittest.TestCase):
     def test_export_import_plain(self):
         for algorithm in symmetric_algorithms:
-            instance = algorithm('A' * algorithm.key_len)
+            instance = algorithm(b'A' * algorithm.key_len)
             blob = CryptExportKey(instance, None, bType_PLAINTEXTKEYBLOB)
             instance2 = CryptImportKey(blob)
             self.assertEqual(instance.key, instance2.key)
@@ -44,14 +45,14 @@ class TestSymmetricKey(unittest.TestCase):
     def test_export_import_simple(self):
         rsa_key = wincrypto.algorithms.RSA_KEYX.from_pem(TEST_RSA_PRIVATE_PEM)
         for algorithm in symmetric_algorithms:
-            instance = algorithm('A' * algorithm.key_len)
+            instance = algorithm(b'A' * algorithm.key_len)
             blob = CryptExportKey(instance, rsa_key, bType_SIMPLEBLOB)
             instance2 = CryptImportKey(blob, rsa_key)
             self.assertEqual(instance.key, instance2.key)
 
     def test_encrypt_decrypt(self):
         for algorithm in symmetric_algorithms:
-            instance = algorithm('A' * algorithm.key_len)
+            instance = algorithm(b'A' * algorithm.key_len)
             c = instance.encrypt(TEST_DATA)
             p = instance.decrypt(c)
             self.assertEqual(TEST_DATA, p)
@@ -86,18 +87,18 @@ class TestHash(unittest.TestCase):
             hash_size = instance.get_hash_size()
             self.assertEqual(len(hash_val), hash_size)
 
-
 class TestCryptDeriveKey(unittest.TestCase):
-    def test_CryptDeriveKey_md5_rc4(self):
+    def test_cryptderivekey_md5_rc4(self):
         md5_hash = CryptCreateHash(CALG_MD5)
-        CryptHashData(md5_hash, 'Test')
+        CryptHashData(md5_hash, b'Test')
         rc4_key = CryptDeriveKey(md5_hash, CALG_RC4)
-        known_key = '0cbc6611f5540bd0809a388dc95a615b'.decode('hex')
+        known_key = a2b_hex('0cbc6611f5540bd0809a388dc95a615b')
         self.assertEqual(rc4_key.key, known_key)
 
-    def test_CryptDeriveKey_sha1_aes192(self):
+    def test_cryptderivekey_sha1_aes192(self):
         sha1_hash = CryptCreateHash(CALG_SHA1)
-        CryptHashData(sha1_hash, 'Test')
+        CryptHashData(sha1_hash, b'Test')
         aes_key = CryptDeriveKey(sha1_hash, CALG_AES_192)
-        known_key = '97d4f8389786352382ce6079c28d6ed3d65021a99b96263e'.decode('hex')
+        known_key = a2b_hex(b'97d4f8389786352382ce6079c28d6ed3d65021a99b96263e')
+        print(1)
         self.assertEqual(aes_key.key, known_key)

@@ -1,6 +1,7 @@
 from abc import abstractproperty, ABCMeta
 import struct
 import hashlib
+import sys
 
 import Crypto.Cipher.PKCS1_v1_5
 import Crypto.Cipher.AES
@@ -13,6 +14,13 @@ from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICK
     bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, ALG_CLASS_HASH, \
     ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
+
+
+
+
+# python2/3 compatibility
+if sys.version > '3':
+    long = int
 
 
 class HCryptKey(object):
@@ -32,7 +40,7 @@ class RSA_KEYX(HCryptKey):
     def import_publickeyblob(cls, data):
         rsapubkey = RSAPUBKEY._make(RSAPUBKEY_s.unpack_from(data))
         assert rsapubkey.magic == RSAPUBKEY_MAGIC
-        bitlen8 = rsapubkey.bitlen / 8
+        bitlen8 = rsapubkey.bitlen // 8
         modulus = bytes_to_long(data[12:12 + bitlen8][::-1])
         r = RSA.construct((modulus, long(rsapubkey.pubexp)))
         return cls(r)

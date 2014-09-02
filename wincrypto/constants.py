@@ -9,8 +9,8 @@ PRIVATEKEYBLOB = namedtuple('PRIVATEKEYBLOB', 'modulus prime1 prime2 exponent1 e
 RSAPUBKEY = namedtuple('RSAPUBKEY', 'magic bitlen pubexp')
 RSAPUBKEY_s = struct.Struct('<4sII')
 
-RSAPUBKEY_MAGIC = 'RSA1'
-PRIVATEKEYBLOB_MAGIC = 'RSA2'
+RSAPUBKEY_MAGIC = b'RSA1'
+PRIVATEKEYBLOB_MAGIC = b'RSA2'
 
 
 # bType

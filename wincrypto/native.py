@@ -40,7 +40,7 @@ def CryptExportKey(hkey, hexpkey, blobType):
     assert_success(success)
 
     # export key
-    bdata = create_string_buffer('', bdatalen.value)
+    bdata = create_string_buffer(b'', bdatalen.value)
     success = windll.advapi32.CryptExportKey(hkey, hexpkey, blobType, 0, bdata, byref(bdatalen))
     assert_success(success)
     return bdata.raw[:bdatalen.value]
@@ -81,7 +81,7 @@ def CryptGetKeyParam(hkey, dwparam):
     assert_success(success)
 
     # get hash param
-    bdata = create_string_buffer('', bdatalen.value)
+    bdata = create_string_buffer(b'', bdatalen.value)
     success = windll.advapi32.CryptGetKeyParam(hkey, dwparam, bdata, byref(bdatalen), 0)
     assert_success(success)
     result = bdata.raw[:bdatalen.value]
@@ -111,7 +111,7 @@ def CryptGetHashParam(hHash, dwParam):
     assert_success(success)
 
     # get hash param
-    bdata = create_string_buffer('', bdatalen.value)
+    bdata = create_string_buffer(b'', bdatalen.value)
     success = windll.advapi32.CryptGetHashParam(hHash, dwParam, bdata, byref(bdatalen), 0)
     assert_success(success)
     result = bdata.raw[:bdatalen.value]
