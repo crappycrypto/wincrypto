@@ -157,11 +157,11 @@ class AES_base(symmetric_HCryptKey):
 
     def encrypt(self, data):
         data = add_pkcs5_padding(data, 16)
-        encrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV='\0' * 16).encrypt(data)
+        encrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV=b'\0' * 16).encrypt(data)
         return encrypted
 
     def decrypt(self, data):
-        decrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV='\0' * 16).decrypt(data)
+        decrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV=b'\0' * 16).decrypt(data)
         result = remove_pkcs5_padding(decrypted)
         return result
 
