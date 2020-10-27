@@ -46,8 +46,8 @@ class RSA_KEYX(HCryptKey):
         return cls(r)
 
     def export_publickeyblob(self):
-        n = self.key.key.n
-        e = self.key.key.e
+        n = self.key.n
+        e = self.key.e
         n_bytes = long_to_bytes(n)[::-1]
         result = PUBLICKEYSTRUC_s.pack(bType_PUBLICKEYBLOB, CUR_BLOB_VERSION, CALG_RSA_KEYX)
         result += RSAPUBKEY_s.pack(RSAPUBKEY_MAGIC, len(n_bytes) * 8, e)
@@ -69,7 +69,7 @@ class RSA_KEYX(HCryptKey):
         return cls(r)
 
     def export_privatekeyblob(self):
-        key = self.key.key
+        key = self.key
         n = key.n
         e = key.e
         d = key.d
