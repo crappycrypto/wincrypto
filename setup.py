@@ -10,7 +10,7 @@ setup(name='wincrypto',
       license='MIT',
       packages=['wincrypto'],
       install_requires=[
-          'pycrypto',
+          'pycryptodome',
       ],
       test_suite='tests',
       classifiers=[
