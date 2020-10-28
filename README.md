@@ -11,7 +11,8 @@ Implemented algorithms:
  - CALG_AES256
  - CALG_RSA_KEYX
  - CALG_MD5
- - CALG_SHA1
+ - CALG_SHA1 
+ - CALG_SHA256
  
 Implemented functions:
 
