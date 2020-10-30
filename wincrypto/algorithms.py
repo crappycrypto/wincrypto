@@ -11,7 +11,7 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
 from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
-    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, ALG_CLASS_HASH, \
+    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA256, ALG_CLASS_HASH, \
     ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
 
@@ -209,8 +209,12 @@ class SHA1(HCryptHash):
     alg_id = CALG_SHA1
     hash_class = hashlib.sha1
 
+class SHA256(HCryptHash):
+    alg_id = CALG_SHA256
+    hash_class = hashlib.sha256
 
-algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1]
+
+algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1, SHA256]
 symmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_DATA_ENCRYPT]
 asymmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_KEY_EXCHANGE]
 hash_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_HASH]
