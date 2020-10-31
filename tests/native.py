@@ -125,7 +125,11 @@ if platform.system() == 'Windows':
 
         def test_hash_native_python(self):
             for algorithm in hash_algorithms:
-                hCryptHash = native.CryptCreateHash(self.hprov, algorithm.alg_id)
+                try:
+                    hCryptHash = native.CryptCreateHash(self.hprov, algorithm.alg_id)
+                except AssertionError as e:
+                    print('CryptCreateHash({}, .., {}) failed'.format(self.hprov, algorithm))
+                    raise e
                 native.CryptHashData(hCryptHash, TEST_DATA)
                 native_hash_val = native.CryptGetHashParam(hCryptHash, constants.HP_HASHVAL)
                 native_hash_size = native.CryptGetHashParam(hCryptHash, HP_HASHSIZE)

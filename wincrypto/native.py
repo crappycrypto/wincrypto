@@ -1,12 +1,14 @@
-from ctypes import FormatError
+from ctypes import FormatError, GetLastError
 from ctypes import windll, c_void_p, byref, create_string_buffer, c_int
 import struct
 
 from wincrypto.constants import HP_ALGID, HP_HASHSIZE, KP_KEYLEN, KP_ALGID, CRYPT_EXPORTABLE
 
-
 PROV_RSA_FULL = 1
 PROV_RSA_AES = 24
+
+CRYPT_NEWKEYSET = 8
+NTE_BAD_KEYSET = 0x80090016
 
 
 def assert_success(success):
@@ -17,6 +19,8 @@ def assert_success(success):
 def CryptAcquireContext():
     hprov = c_void_p()
     success = windll.advapi32.CryptAcquireContextA(byref(hprov), 0, 0, PROV_RSA_AES, 0)
+    if not success and GetLastError() & 0xffffffff == NTE_BAD_KEYSET:
+        success = windll.advapi32.CryptAcquireContextA(byref(hprov), 0, 0, PROV_RSA_AES, CRYPT_NEWKEYSET)
     assert_success(success)
     return hprov
 
@@ -92,7 +96,7 @@ def CryptGetKeyParam(hkey, dwparam):
 
 def CryptCreateHash(hProv, Algid):
     hCryptHash = c_void_p()
-    success = windll.advapi32.CryptCreateHash(hProv, Algid, 0, 0, byref(hCryptHash))
+    success = windll.advapi32.CryptCreateHash(hProv, Algid, 0, None, byref(hCryptHash))
     assert_success(success)
     return hCryptHash
 
