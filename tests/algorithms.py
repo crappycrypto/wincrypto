@@ -100,5 +100,4 @@ class TestCryptDeriveKey(unittest.TestCase):
         CryptHashData(sha1_hash, b'Test')
         aes_key = CryptDeriveKey(sha1_hash, CALG_AES_192)
         known_key = a2b_hex(b'97d4f8389786352382ce6079c28d6ed3d65021a99b96263e')
-        print(1)
         self.assertEqual(aes_key.key, known_key)
