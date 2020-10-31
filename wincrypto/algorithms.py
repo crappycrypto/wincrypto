@@ -11,12 +11,10 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
 from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
-    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA256, ALG_CLASS_HASH, \
+    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA_256, \
+    ALG_CLASS_HASH, \
     ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
-
-
-
 
 # python2/3 compatibility
 if sys.version > '3':
@@ -94,7 +92,6 @@ class RSA_KEYX(HCryptKey):
         c = Crypto.Cipher.PKCS1_v1_5.new(self.key)
         result = c.decrypt(data, None)
         return result
-
 
     def encrypt(self, data):
         c = Crypto.Cipher.PKCS1_v1_5.new(self.key)
@@ -209,8 +206,9 @@ class SHA1(HCryptHash):
     alg_id = CALG_SHA1
     hash_class = hashlib.sha1
 
+
 class SHA256(HCryptHash):
-    alg_id = CALG_SHA256
+    alg_id = CALG_SHA_256
     hash_class = hashlib.sha256
 
 
