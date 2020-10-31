@@ -1,5 +1,5 @@
 from wincrypto import constants
-from wincrypto.algorithms import algorithm_registry
+from wincrypto.algorithms import algorithm_registry, SHA256
 from wincrypto.constants import PUBLICKEYSTRUC, PUBLICKEYSTRUC_s, CUR_BLOB_VERSION, bType_PUBLICKEYBLOB, \
     bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, bType_SIMPLEBLOB, KP_KEYLEN, KP_ALGID, CALG_AES_192, CALG_AES_256, \
     CALG_AES_128, ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
@@ -92,6 +92,8 @@ def CryptGetHashParam(hash_alg, dwParam):
 def CryptDeriveKey(hash_alg, algid):
     if algid not in algorithm_registry:
         raise NotImplementedError('ALG_ID {:x} not implemented'.format(algid))
+    if isinstance(hash_alg, SHA256):
+        raise NotImplementedError('CryptDeriveKey not implemented for SHA-2 family')
     hash_val = hash_alg.get_hash_val()
     alg_class = algorithm_registry[algid]
     # key derivation for AES and 3DES for non SHA2 family algorithms

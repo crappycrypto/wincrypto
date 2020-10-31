@@ -11,12 +11,10 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
 
 from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
-    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, ALG_CLASS_HASH, \
+    bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA_256, \
+    ALG_CLASS_HASH, \
     ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
-
-
-
 
 # python2/3 compatibility
 if sys.version > '3':
@@ -46,8 +44,8 @@ class RSA_KEYX(HCryptKey):
         return cls(r)
 
     def export_publickeyblob(self):
-        n = self.key.key.n
-        e = self.key.key.e
+        n = self.key.n
+        e = self.key.e
         n_bytes = long_to_bytes(n)[::-1]
         result = PUBLICKEYSTRUC_s.pack(bType_PUBLICKEYBLOB, CUR_BLOB_VERSION, CALG_RSA_KEYX)
         result += RSAPUBKEY_s.pack(RSAPUBKEY_MAGIC, len(n_bytes) * 8, e)
@@ -69,7 +67,7 @@ class RSA_KEYX(HCryptKey):
         return cls(r)
 
     def export_privatekeyblob(self):
-        key = self.key.key
+        key = self.key
         n = key.n
         e = key.e
         d = key.d
@@ -94,7 +92,6 @@ class RSA_KEYX(HCryptKey):
         c = Crypto.Cipher.PKCS1_v1_5.new(self.key)
         result = c.decrypt(data, None)
         return result
-
 
     def encrypt(self, data):
         c = Crypto.Cipher.PKCS1_v1_5.new(self.key)
@@ -157,11 +154,11 @@ class AES_base(symmetric_HCryptKey):
 
     def encrypt(self, data):
         data = add_pkcs5_padding(data, 16)
-        encrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV='\0' * 16).encrypt(data)
+        encrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV=b'\0' * 16).encrypt(data)
         return encrypted
 
     def decrypt(self, data):
-        decrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV='\0' * 16).decrypt(data)
+        decrypted = Crypto.Cipher.AES.new(self.key, mode=Crypto.Cipher.AES.MODE_CBC, IV=b'\0' * 16).decrypt(data)
         result = remove_pkcs5_padding(decrypted)
         return result
 
@@ -210,7 +207,12 @@ class SHA1(HCryptHash):
     hash_class = hashlib.sha1
 
 
-algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1]
+class SHA256(HCryptHash):
+    alg_id = CALG_SHA_256
+    hash_class = hashlib.sha256
+
+
+algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1, SHA256]
 symmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_DATA_ENCRYPT]
 asymmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_KEY_EXCHANGE]
 hash_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_HASH]

@@ -159,6 +159,9 @@ if platform.system() == 'Windows':
 
                     python_hash = api.CryptCreateHash(hash_alg.alg_id)
                     api.CryptHashData(python_hash, TEST_DATA)
-                    python_key = api.CryptDeriveKey(python_hash, sym_alg.alg_id)
+                    try:
+                        python_key = api.CryptDeriveKey(python_hash, sym_alg.alg_id)
+                    except NotImplementedError:
+                        continue
 
                     self.assertEqual(native_key.key, python_key.key)

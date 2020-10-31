@@ -1,6 +1,5 @@
 from collections import namedtuple
 import struct
-
 PUBLICKEYSTRUC = namedtuple('PUBLICKEYSTRUC', 'bType bVersion aiKeyAlg')  # reserved is skipped when unpacking
 PUBLICKEYSTRUC_s = struct.Struct('<bb2xI')
 
@@ -27,6 +26,7 @@ CALG_RC4 = 0x6801
 CALG_MD5 = 0x8003
 CALG_SHA = 0x8004
 CALG_SHA1 = 0x8004
+CALG_SHA_256 = 0x800c
 CALG_RSA_KEYX = 0xa400
 
 # Hash params
