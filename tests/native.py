@@ -68,7 +68,10 @@ if platform.system() == 'Windows':
             rsa_hkey = native.CryptImportKey(self.hprov, rsa_blob)
             for algorithm in symmetric_algorithms:
                 instance = algorithm(b'A' * algorithm.key_len)
-                blob = wincrypto.api.CryptExportKey(instance, rsa_key, bType_SIMPLEBLOB)
+                try:
+                    blob = wincrypto.api.CryptExportKey(instance, rsa_key, bType_SIMPLEBLOB)
+                except NotImplementedError:
+                    continue
                 hkey = native.CryptImportKey(self.hprov, blob, rsa_hkey)
                 c = native.CryptEncrypt(hkey, TEST_DATA)
                 p = instance.decrypt(c)

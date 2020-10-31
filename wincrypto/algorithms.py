@@ -5,6 +5,7 @@ import sys
 
 import Crypto.Cipher.PKCS1_v1_5
 import Crypto.Cipher.AES
+import Crypto.Cipher.ARC2
 import Crypto.Cipher.ARC4
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
@@ -13,7 +14,7 @@ from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICK
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
     bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA_256, \
     ALG_CLASS_HASH, \
-    ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT
+    ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT, CALG_RC2
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
 
 # python2/3 compatibility
@@ -138,6 +139,25 @@ class symmetric_HCryptKey(HCryptKey):
         return result
 
 
+class RC2(symmetric_HCryptKey):
+    alg_id = CALG_RC2
+    key_len = 16
+    # Fixed to the secure variant of RC2 without salt, this is implemented by the modern crypto providers
+    # Support for old 40 bits encryption is not implemented
+
+    def encrypt(self, data):
+        data = add_pkcs5_padding(data, 8)
+        return Crypto.Cipher.ARC2.new(self.key, mode=Crypto.Cipher.ARC2.MODE_CBC, IV=b'\0' * 8).encrypt(data)
+
+    def decrypt(self, data):
+        decrypted = Crypto.Cipher.ARC2.new(self.key, mode=Crypto.Cipher.ARC2.MODE_CBC, IV=b'\0' * 8).decrypt(data)
+        result = remove_pkcs5_padding(decrypted)
+        return result
+
+    def export_simpleblob(self, rsa_key):
+        raise NotImplementedError('RC2 export as SIMPLEBLOB not supported')
+
+
 class RC4(symmetric_HCryptKey):
     alg_id = CALG_RC4
     key_len = 16
@@ -212,7 +232,7 @@ class SHA256(HCryptHash):
     hash_class = hashlib.sha256
 
 
-algorithm_list = [RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1, SHA256]
+algorithm_list = [RC2, RC4, AES128, AES192, AES256, RSA_KEYX, MD5, SHA1, SHA256]
 symmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_DATA_ENCRYPT]
 asymmetric_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_KEY_EXCHANGE]
 hash_algorithms = [x for x in algorithm_list if GET_ALG_CLASS(x.alg_id) == ALG_CLASS_HASH]
