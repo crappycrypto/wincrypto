@@ -27,4 +27,4 @@ jobs:
         pip install .
     - name: Test
       run: |
-        python setup.py test
+        python -m unittest
