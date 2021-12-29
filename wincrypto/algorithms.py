@@ -9,13 +9,15 @@ import Crypto.Cipher.ARC2
 import Crypto.Cipher.ARC4
 from Crypto.PublicKey import RSA
 from Crypto.Util.number import long_to_bytes, bytes_to_long, inverse
+from Crypto.Util.Padding import pad, unpad
 
 from wincrypto.constants import RSAPUBKEY, RSAPUBKEY_s, RSAPUBKEY_MAGIC, PUBLICKEYSTRUC_s, bType_PUBLICKEYBLOB, \
     CUR_BLOB_VERSION, CALG_RSA_KEYX, PRIVATEKEYBLOB_MAGIC, PRIVATEKEYBLOB, bType_PRIVATEKEYBLOB, bType_PLAINTEXTKEYBLOB, \
     bType_SIMPLEBLOB, CALG_RC4, CALG_AES_128, CALG_AES_192, CALG_AES_256, CALG_MD5, CALG_SHA1, CALG_SHA_256, \
     ALG_CLASS_HASH, \
-    ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT, CALG_RC2
+    ALG_CLASS_KEY_EXCHANGE, ALG_CLASS_DATA_ENCRYPT, CALG_RC2, CALG_3DES
 from wincrypto.util import add_pkcs5_padding, remove_pkcs5_padding, GET_ALG_CLASS
+
 
 # python2/3 compatibility
 if sys.version > '3':
@@ -156,6 +158,20 @@ class RC2(symmetric_HCryptKey):
 
     def export_simpleblob(self, rsa_key):
         raise NotImplementedError('RC2 export as SIMPLEBLOB not supported')
+
+
+class DES3(symmetric_HCryptKey):
+    alg_id = CALG_3DES
+    key_len = 24
+
+    def encrypt(self, data):
+        return Crypto.Cipher.DES3.new(self.key, mode=Crypto.Cipher.DES3.MODE_CBC, IV=b'\0' * 8).encrypt(
+            pad(data, Crypto.Cipher.DES3.block_size))
+
+    def decrypt(self, data):
+        return unpad(Crypto.Cipher.DES3.new(self.key, mode=Crypto.Cipher.DES3.MODE_CBC, IV=b'\0' * 8).decrypt(data),
+                     Crypto.Cipher.DES3.block_size)
+
 
 
 class RC4(symmetric_HCryptKey):
