@@ -13,6 +13,7 @@ Implemented algorithms:
  - CALG_MD5
  - CALG_SHA1 
  - CALG_SHA256
+ - CALG_3DES
  
 Implemented functions:
 
