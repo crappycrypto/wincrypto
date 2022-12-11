@@ -102,4 +102,7 @@ def CryptDeriveKey(hash_alg, algid):
     else:
         key = hash_val
     key = key[:alg_class.key_len]
+    if algid == CALG_RC4:
+        # MSFT RC4 only uses 5 bytes of hash, zero padded
+        key = key[:5] + bytes(11)    
     return alg_class(key)
